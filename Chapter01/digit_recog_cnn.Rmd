@@ -1,0 +1,101 @@
+---
+title: "Handwritten Digit Recognition using CNN on MNIST"
+output: html_notebook
+---
+
+This script is the demo code for chapter 1.
+
+Loading data:
+```{r}
+dat <- read.csv2('train.csv', sep = ',')
+```
+
+Explore the dataset:
+```{r}
+dim(dat)
+head(dat[1:6])  # this shows the dataframe is column oriented
+unique(unlist(dat[1]))
+min(dat[2:785])
+max(dat[2:785])
+```
+
+Each row of the dataframe represents a grey image (a handwritten digit) consists of a label (what the digit is) and 784 pixels (28 * 28). Each pixel is represented by a number between 0 to 255, which is the brightness of the pixel, for example, 0 means black and 255 means white.
+
+Show the image at the 4th row:
+```{r}
+sample.4 <- matrix(as.numeric(dat[4, -1]), nrow = 28, byrow = TRUE)
+image(sample.4, col = grey.colors(255))
+```
+
+
+Show the image at the 7th row:
+```{r}
+sample.7 <- matrix(as.numeric(dat[7, -1]), nrow = 28, byrow = TRUE)
+image(sample.7, col = grey.colors(255))
+```
+
+Give a rotation of 90 degrees clockwise on the image, by fristly reverse elements in each column of the matrix, and then transpose this matrix(why?):
+```{r}
+rotate <- function(x) {t(apply(x, 2, rev))}
+image(rotate(sample.4), col = grey.colors(255))
+image(rotate(sample.7), col = grey.colors(255))
+```
+
+Transform response variable "label" from integer to factor, to perform classification:
+```{r}
+is.factor(dat$label)
+dat$label <- as.factor(dat$label)
+is.factor(dat$label)
+```
+
+Summarize the label distribution in counts:
+```{r}
+summary(dat$label)
+```
+
+Combined with proportion:
+```{r}
+prop <- prop.table(table(dat$label))
+cbind(count = table(dat$label), proportion = prop)
+```
+
+Classes are balanced.
+
+```{r}
+central.block <- c('pixel376', 'pixel377', 'pixel404', 'pixel405')
+par(mfrow = c(2, 2))
+for (i in 1:9) {
+  hist(c(as.matrix(dat[dat$label == i, central.block])),
+       main = sprintf('Histogram for digit %d', i),
+       xlab = 'Pixel Value')
+}
+```
+
+上面代码中的`central.block`分析如下：
+
+首先：`pixel376`是列名：
+```{r}
+names(dat)[378]
+names(dat)[379]
+names(dat)[406]
+names(dat)[407]
+head(names(dat))
+```
+
+其次，`pixel376` 等4个像素点是比较靠近28 * 28 的图片中心的像素点：
+```{r}
+376 %/% 28
+376 %% 28
+404 %/% 28
+404 %% 28
+```
+
+就是说`pixel376` 位于第13行第12列，而 `dat[dat$label == 1, central.block]` 代表在训练集包含的42000张图片中，
+所有被标记为1的图片的靠近中心位置的4个像素点的亮度值。
+
+P.S.: 28 * 28图片的正中心是第14行的第14,15列，第15行的第14,15列，共4个像素，当第一个像素记为`pixel0`时，
+第i行第j列的标号是$(i - 1) \times 28 + (j - 1)$，所以这4个像素的标号是 `pixel377`, `pixel378`, `pixel405`, `pixel406`. 所以书中这4个点不是图片正中心，而是正中心向左偏一个像素的4个点。
+
+从直方图可以看到大多数写有数字2,4,7图片的中心是黑色（直方图左侧第一列brightness = 0占比最大），
+写有数字3,8图片的中心以白色为主（直方图第右侧brightness = 255占比最大）。
+
